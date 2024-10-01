@@ -44,8 +44,24 @@ sealed abstract class HList extends Product {
     i
   }
 
+  def apply(idx: Int): Any = {
+    require(idx >= 0, "Index should be non negative")
+    var i = 0
+    var h = this
+    while(h.nonEmpty && i < idx) {
+      i += 1
+      h = h.tail
+    }
+    if(i < idx) throw new IndexOutOfBoundsException 
+    h.head
+  } 
+
+
   /** Prepend an element to this HList, returning a new HList. */
   @inline final def :: [E](elem: E): :: [E] = new HCons[E, Self](elem, this.asInstanceOf[Self])
+
+  /** Concatenate 2 HList. */
+  @inline final def ::: (h2: HList): HList = HList.concat(h2, this) // The operator is right to left so this has to be the second argument
 
   /** Drop the first `n` elements from this HList. */
   final def drop(i: Int): HList = {
@@ -92,6 +108,15 @@ sealed abstract class HList extends Product {
 
 object HList {
   import syntax.*
+
+  /** Concatenates two HLists. */
+  def concat[L1 <: HList, L2 <: HList](l1: L1, l2: L2): HList = {
+    (l1, l2) match {
+      case (HNil, _) => l2
+      case (_, HNil) => l1
+      case (h1 :: t1, x) => h1 :: concat(t1, x)
+    }
+  }
 
   final class HListShape[
     Level <: ShapeLevel,
